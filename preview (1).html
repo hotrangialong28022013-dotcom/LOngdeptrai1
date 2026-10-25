@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SmartWaste AI – Chatbot phân loại rác</title>
+<style>
+:root{--bg:#f9fff9;--bg2:#fff;--bg3:#f0faf3;--text:#1e3a2e;--text2:#4b6b59;--text3:#7a8a80;--primary:#2b7a4b;--primary-dark:#1a4f30;--primary-light:#e0f2e5;--border:#d9f0e2;--danger:#b33e3e;--warn:#f0b429;--user-bubble:#2b7a4b;--user-bubble-text:#fff;--ai-bubble:#fff;--ai-bubble-text:#1e3a2e;--sidebar-bg:#fff;--shadow:0 4px 12px rgba(0,40,20,.06);}
+[data-theme="dark"]{--bg:#0f1a14;--bg2:#1a2b1f;--bg3:#1f3326;--text:#e8f5ec;--text2:#b8d4c2;--text3:#7a9a88;--primary:#4caf7a;--primary-dark:#2b7a4b;--primary-light:#1f3326;--border:#2a4433;--danger:#e57373;--warn:#ffb74d;--user-bubble:#2b7a4b;--user-bubble-text:#fff;--ai-bubble:#1a2b1f;--ai-bubble-text:#e8f5ec;--sidebar-bg:#1a2b1f;--shadow:0 4px 12px rgba(0,0,0,.3);}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;}
+body{background:var(--bg);color:var(--text);overflow:hidden;height:100vh;}
+.app{display:flex;height:100vh;}
+.sidebar{width:280px;background:var(--sidebar-bg);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:transform .25s;z-index:30;}
+.sidebar-header{padding:16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.logo{font-size:1.2rem;font-weight:700;color:var(--primary);}
+.btn-new{margin:12px;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:50px;font-weight:600;cursor:pointer;font-size:.95rem;box-shadow:0 4px 0 var(--primary-dark);}
+.btn-new:active{transform:translateY(2px);box-shadow:0 2px 0 var(--primary-dark);}
+.search-chats{margin:0 12px 12px;padding:10px 14px;border:2px solid var(--border);border-radius:40px;background:var(--bg);color:var(--text);font-size:.9rem;outline:none;}
+.chat-list{flex:1;overflow-y:auto;padding:0 8px;}
+.chat-item{padding:10px 12px;border-radius:12px;cursor:pointer;margin-bottom:4px;display:flex;align-items:center;gap:8px;color:var(--text);font-size:.9rem;}
+.chat-item:hover{background:var(--primary-light);}
+.chat-item.active{background:var(--primary-light);color:var(--primary);font-weight:600;}
+.chat-item-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chat-item-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:1rem;padding:2px 6px;border-radius:6px;}
+.chat-item-del:hover{background:var(--danger);color:#fff;}
+.sidebar-footer{padding:12px;border-top:1px solid var(--border);}
+.btn-tool{width:100%;padding:10px 12px;background:var(--bg3);color:var(--text);border:none;border-radius:12px;cursor:pointer;margin-bottom:8px;font-size:.9rem;font-weight:500;text-align:left;}
+.btn-tool:hover{background:var(--primary-light);}
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.app-header{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;gap:12px;}
+.app-header h1{font-size:1.05rem;color:var(--primary);flex:1;}
+.icon-btn{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text);padding:6px;border-radius:8px;}
+.icon-btn:hover{background:var(--primary-light);}
+.chat-area{flex:1;overflow-y:auto;padding:20px;}
+.welcome{max-width:600px;margin:40px auto;text-align:center;}
+.welcome-icon{font-size:4rem;margin-bottom:12px;}
+.welcome h2{font-size:1.5rem;margin-bottom:10px;color:var(--primary);}
+.welcome p{color:var(--text2);margin-bottom:20px;font-size:.95rem;}
+.suggestions{display:flex;flex-direction:column;gap:10px;}
+.suggestion{padding:12px 16px;background:var(--bg2);border:2px solid var(--border);border-radius:14px;text-align:left;cursor:pointer;font-size:.95rem;color:var(--text);transition:all .15s;}
+.suggestion:hover{border-color:var(--primary);background:var(--primary-light);transform:translateX(2px);}
+.messages{max-width:800px;margin:0 auto;}
+.msg{margin-bottom:18px;display:flex;gap:10px;}
+.msg.user{flex-direction:row-reverse;}
+.msg-avatar{width:36px;height:36px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.msg.user .msg-avatar{background:var(--user-bubble);color:#fff;}
+.msg-content{max-width:80%;min-width:0;}
+.msg-bubble{padding:12px 16px;border-radius:16px;line-height:1.55;word-wrap:break-word;white-space:pre-wrap;font-size:.95rem;}
+.msg.ai .msg-bubble{background:var(--ai-bubble);color:var(--ai-bubble-text);border-top-left-radius:4px;border:1px solid var(--border);}
+.msg.user .msg-bubble{background:var(--user-bubble);color:var(--user-bubble-text);border-top-right-radius:4px;}
+.msg-img{max-width:240px;max-height:240px;border-radius:12px;margin-bottom:6px;display:block;}
+.msg-actions{display:flex;gap:6px;margin-top:4px;font-size:.75rem;}
+.msg-actions button{background:none;border:none;color:var(--text3);cursor:pointer;padding:3px 8px;border-radius:6px;}
+.msg-actions button:hover{background:var(--primary-light);color:var(--primary);}
+.typing{display:inline-flex;gap:4px;align-items:center;padding:14px 16px;}
+.typing span{width:8px;height:8px;background:var(--primary);border-radius:50%;animation:bounce 1.4s infinite;}
+.typing span:nth-child(2){animation-delay:.2s;}
+.typing span:nth-child(3){animation-delay:.4s;}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-6px);}}
+.img-preview{padding:8px 16px;display:none;align-items:center;gap:8px;background:var(--bg3);border-top:1px solid var(--border);}
+.img-preview.active{display:flex;}
+.img-preview img{height:56px;border-radius:8px;}
+.img-preview button{background:var(--danger);color:#fff;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:.9rem;}
+.input-area{padding:12px 16px;border-top:1px solid var(--border);background:var(--bg2);display:flex;align-items:flex-end;gap:8px;}
+.input-area textarea{flex:1;padding:12px 16px;border:2px solid var(--border);border-radius:20px;background:var(--bg);color:var(--text);font-size:.95rem;resize:none;max-height:150px;outline:none;font-family:inherit;}
+.input-area textarea:focus{border-color:var(--primary);}
+.input-hint{padding:6px 16px 10px;font-size:.75rem;color:var(--text3);text-align:center;background:var(--bg2);}
+.send-btn{background:var(--primary);color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:1.1rem;cursor:pointer;flex-shrink:0;box-shadow:0 3px 0 var(--primary-dark);transition:transform .1s;}
+.send-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--primary-dark);}
+.send-btn.stop{background:var(--danger);box-shadow:0 3px 0 #7a2828;}
+.send-btn.pulse{animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 3px 0 var(--primary-dark),0 0 0 0 rgba(43,122,75,.6);}50%{box-shadow:0 3px 0 var(--primary-dark),0 0 0 8px rgba(43,122,75,0);}}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;padding:16px;}
+.modal.active{display:flex;}
+.modal-content{background:var(--bg2);border-radius:20px;max-width:800px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
+.modal-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.modal-header h2{font-size:1.1rem;color:var(--primary);}
+.modal-tabs{display:flex;overflow-x:auto;border-bottom:1px solid var(--border);}
+.modal-tabs button{padding:11px 14px;background:none;border:none;cursor:pointer;color:var(--text2);font-weight:500;border-bottom:3px solid transparent;white-space:nowrap;font-size:.9rem;}
+.modal-tabs button.active{color:var(--primary);border-bottom-color:var(--primary);}
+.modal-body{padding:18px;overflow-y:auto;flex:1;}
+.card{background:var(--bg3);border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid var(--border);}
+.card h3{color:var(--primary);margin-bottom:6px;font-size:1.05rem;}
+.card p{margin-bottom:5px;color:var(--text2);font-size:.9rem;}
+.tag{display:inline-block;background:var(--primary);color:#fff;padding:4px 12px;border-radius:20px;font-size:.8rem;font-weight:600;margin:4px 4px 4px 0;}
+.search-row{display:flex;gap:8px;margin-bottom:12px;}
+.search-row input{flex:1;padding:10px 14px;border-radius:40px;border:2px solid var(--border);background:var(--bg);color:var(--text);outline:none;font-size:.9rem;}
+.btn-primary{background:var(--primary);color:#fff;border:none;border-radius:40px;padding:10px 20px;font-weight:600;cursor:pointer;font-size:.9rem;}
+.btn-secondary{background:var(--bg);color:var(--primary);border:2px solid var(--primary);border-radius:40px;padding:9px 18px;font-weight:600;cursor:pointer;font-size:.9rem;}
+.q-opt{padding:11px 16px;background:var(--bg);border:2px solid var(--border);border-radius:40px;margin-bottom:8px;cursor:pointer;font-size:.9rem;}
+.q-opt.selected{border-color:var(--primary);background:var(--primary-light);}
+.review-item{padding:11px;background:var(--bg3);border-left:4px solid var(--warn);border-radius:10px;margin-bottom:8px;font-size:.85rem;}
+.api-warn{padding:10px 12px;background:#fff8e6;border:2px solid var(--warn);border-radius:10px;margin-bottom:12px;font-size:.85rem;color:#7a6a3a;}
+[data-theme="dark"] .api-warn{background:#3a2f14;color:#ffd966;}
+.menu-toggle{display:none;}
+@media (max-width:768px){
+.sidebar{position:fixed;inset:0 auto 0 0;transform:translateX(-100%);width:260px;}
+.sidebar.open{transform:translateX(0);}
+.menu-toggle{display:block;}
+.msg-content{max-width:85%;}
+.chat-area{padding:12px;}
+}
+.cam-wrap{background:#000;border-radius:14px;overflow:hidden;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+.cam-wrap video,.cam-wrap img{width:100%;height:100%;object-fit:cover;}
+.cam-placeholder{color:#c8e6d3;text-align:center;padding:20px;font-size:.9rem;}
+.cam-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.cam-actions button{flex:1;min-width:100px;padding:10px;font-size:.85rem;}
+.hidden{display:none !important;}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar" id="sidebar">
+<div class="sidebar-header">
+<div class="logo">♻️ SmartWaste</div>
+<button class="icon-btn" id="closeSidebar">✕</button>
+</div>
+<button class="btn-new" id="newChatBtn">+ Cuộc trò chuyện mới</button>
+<input type="text" class="search-chats" id="searchChats" placeholder="🔍 Tìm cuộc trò chuyện...">
+<div class="chat-list" id="chatList"></div>
+<div class="sidebar-footer">
+<button class="btn-tool" id="openToolsBtn">🛠 Công cụ SmartWaste</button>
+<button class="btn-tool" id="openSettingsBtn">⚙️ Cài đặt AI</button>
+</div>
+</aside>
+
+<main class="main">
+<header class="app-header">
+<button class="icon-btn menu-toggle" id="menuToggle">☰</button>
+<h1>SmartWaste AI</h1>
+<button class="icon-btn" id="themeToggle">🌙</button>
+</header>
+
+<div class="chat-area" id="chatArea">
+<div class="welcome" id="welcome">
+<div class="welcome-icon">♻️</div>
+<h2>Xin chào! Mình là SmartWaste AI</h2>
+<p>Mình giúp bạn phân loại rác, tư vấn tái chế và hướng dẫn xử lý chất thải đúng cách. Bạn có thể hỏi bằng chữ hoặc gửi ảnh.</p>
+<div class="suggestions">
+<button class="suggestion" data-q="Chai nhựa nên bỏ vào thùng nào?">Chai nhựa nên bỏ vào thùng nào?</button>
+<button class="suggestion" data-q="Phân loại pin cũ như thế nào?">Phân loại pin cũ như thế nào?</button>
+<button class="suggestion" data-q="Hộp thức ăn dính dầu mỡ có tái chế được không?">Hộp thức ăn dính dầu mỡ có tái chế được không?</button>
+<button class="suggestion" data-q="Làm thế nào để giảm lượng rác thải nhựa?">Làm thế nào để giảm lượng rác thải nhựa?</button>
+</div>
+</div>
+<div class="messages" id="messages"></div>
+</div>
+
+<div class="img-preview" id="imgPreview">
+<img id="previewImg" alt="preview">
+<button id="removeImg" title="Xóa ảnh">✕</button>
+</div>
+
+<div class="input-area">
+<button class="icon-btn" id="attachBtn" title="Gửi ảnh">📎</button>
+<input type="file" id="imageInput" accept="image/*" hidden>
+<textarea id="userInput" placeholder="Hỏi mình về phân loại rác..." rows="1"></textarea>
+<button class="send-btn" id="sendBtn" title="Gửi">➤</button>
+</div>
+<div class="input-hint" id="inputHint">Nhấn Enter để gửi · Shift+Enter để xuống dòng</div>
+</main>
+</div>
+
+<div class="modal" id="toolsModal">
+<div class="modal-content">
+<div class="modal-header"><h2>🛠 Công cụ SmartWaste</h2><button class="icon-btn" id="closeTools">✕</button></div>
+<div class="modal-tabs" id="toolsTabs">
+<button data-tool="home" class="active">Trang chủ</button>
+<button data-tool="search">Tra cứu</button>
+<button data-tool="guide">Hướng dẫn</button>
+<button data-tool="quiz">Luyện tập</button>
+<button data-tool="result">Kết quả</button>
+<button data-tool="camera">📷 Camera</button>
+</div>
+<div class="modal-body" id="modalBody"></div>
+</div>
+</div>
+
+<div class="modal" id="settingsModal">
+<div class="modal-content" style="max-width:500px;">
+<div class="modal-header"><h2>⚙️ Cài đặt AI</h2><button class="icon-btn" id="closeSettings">✕</button></div>
+<div class="modal-body">
+<div class="api-warn" id="apiStatus">Đang kiểm tra kết nối AI...</div>
+<label style="font-size:.9rem;font-weight:600;display:block;margin-bottom:6px;">Gemini API Key</label>
+<input type="password" id="apiKeyInput" placeholder="AIza..." style="width:100%;padding:12px 16px;border-radius:40px;border:2px solid var(--border);background:var(--bg);color:var(--text);outline:none;">
+<p style="font-size:.8rem;margin-top:8px;color:var(--text2);">Key lưu cục bộ trên trình duyệt. Lấy tại <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--primary);">aistudio.google.com/apikey</a></p>
+<label style="font-size:.9rem;font-weight:600;display:block;margin:14px 0 6px;">Model</label>
+<input type="text" id="modelInput" value="gemini-3.8-flash" style="width:100%;padding:12px 16px;border-radius:40px;border:2px solid var(--border);background:var(--bg);color:var(--text);outline:none;">
+<button class="btn-primary" id="saveSettings" style="margin-top:14px;width:100%;">Lưu cài đặt</button>
+</div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// 🔑 THAY API KEY CỦA BẠN VÀO DÒNG DƯỚI ĐÂY
+// ═══════════════════════════════════════════════════════════════════
+const HARDCODED_API_KEY = "YOUR_GEMINI_API_KEY_HERE";  // ⬅️ DÁN KEY VÀO ĐÂY
+// ═══════════════════════════════════════════════════════════════════
+
+console.log('[SmartWaste] Boot: script loaded');
+
+// ============ DATA ============
+var wasteDB=[
+{n:'Chai nhựa',g:'Tái chế',r:'Nhựa PET tái sinh được thành sợi, chai mới.',p:'Bóp dẹp, bỏ nắp riêng.'},
+{n:'Ly còn nước',g:'Còn lại',r:'Nước bên trong gây mùi, ly nhựa dùng 1 lần khó tái chế.',p:'Đổ nước vào lavabo, ly bỏ thùng còn lại.'},
+{n:'Giấy bẩn',g:'Còn lại',r:'Dính dầu mỡ, thức ăn không tái chế được.',p:'Bỏ thùng còn lại.'},
+{n:'Hộp thức ăn',g:'Còn lại',r:'Hộp xốp/nhựa dính thức ăn khó tái chế.',p:'Đổ thức ăn thừa vào hữu cơ, hộp bỏ thùng còn lại.'},
+{n:'Pin',g:'Nguy hại',r:'Chứa kim loại nặng, hóa chất độc hại.',p:'Bỏ thùng pin nguy hại riêng, không đập vỡ.'},
+{n:'Vỏ chuối',g:'Hữu cơ',r:'Dễ phân hủy, làm compost.',p:'Bỏ thùng hữu cơ.'},
+{n:'Hộp sữa giấy',g:'Tái chế',r:'Giấy tráng nhôm tái chế được nếu sạch.',p:'Rửa sơ, gấp dẹp, bỏ thùng tái chế.'},
+{n:'Ống hút nhựa',g:'Còn lại',r:'Nhỏ, khó tái chế.',p:'Bỏ thùng còn lại.'},
+{n:'Giấy vụn sạch',g:'Tái chế',r:'Tái chế thành giấy mới.',p:'Gấp gọn, bỏ thùng tái chế.'},
+{n:'Khẩu trang y tế',g:'Còn lại',r:'Có thể chứa vi khuẩn.',p:'Buộc kín, bỏ thùng còn lại.'},
+{n:'Vỏ sữa chua',g:'Tái chế',r:'Nhựa PP tái chế được nếu rửa sạch.',p:'Rửa sơ, để ráo.'},
+{n:'Bóng đèn',g:'Nguy hại',r:'Chứa thủy ngân, rất độc.',p:'Bỏ thùng nguy hại riêng.'}
+];
+var quizDB=[
+{q:'Chai nhựa nên bỏ vào đâu?',o:['Tái chế','Hữu cơ','Nguy hại','Còn lại'],c:0},
+{q:'Ly còn nước thuộc nhóm nào?',o:['Tái chế','Còn lại','Hữu cơ','Nguy hại'],c:1},
+{q:'Giấy bẩn bỏ thùng nào?',o:['Tái chế','Hữu cơ','Còn lại','Nguy hại'],c:2},
+{q:'Pin bỏ vào đâu?',o:['Tái chế','Còn lại','Hữu cơ','Nguy hại'],c:3},
+{q:'Hộp thức ăn xử lý thế nào?',o:['Bỏ cả hộp vào tái chế','Đổ thức ăn vào hữu cơ, hộp bỏ còn lại','Bỏ nguy hại','Rửa sạch bỏ tái chế'],c:1}
+];
+var guideDB={
+'Tái chế':{i:'♻️',a:'Làm sạch, gấp/bóp gọn, bỏ thùng tái chế.',e:'Chai nhựa, lon, giấy sạch, hộp sữa giấy...'},
+'Hữu cơ':{i:'🍂',a:'Bỏ thùng hữu cơ (xanh lá/nâu).',e:'Vỏ trái cây, thức ăn thừa, lá cây...'},
+'Nguy hại':{i:'⚠️',a:'Bỏ thùng nguy hại riêng, KHÔNG bỏ chung.',e:'Pin, bóng đèn, chai thuốc...'},
+'Còn lại':{i:'🗑️',a:'Bỏ thùng rác còn lại (xám/đen).',e:'Ly nhựa dùng 1 lần, giấy bẩn, hộp xốp...'}
+};
+
+var SYSTEM_PROMPT = "Bạn là SmartWaste AI - trợ lý phân loại rác của học sinh THCS Việt Nam. Nhiệm vụ: tư vấn phân loại rác, tái chế, xử lý chất thải, giáo dục môi trường.\n\nQUY TẮC:\n1. Trả lời tiếng Việt tự nhiên, ngắn gọn, dễ hiểu với học sinh.\n2. Khi hỏi về một vật, cung cấp: (a) tên vật, (b) nhóm rác (Tái chế/Hữu cơ/Nguy hại/Còn lại), (c) lý do, (d) cách xử lý trước khi bỏ, (e) cảnh báo nếu nguy hại.\n3. KHÔNG khẳng định mọi địa phương dùng cùng màu thùng.\n4. Nếu không đủ thông tin hoặc ảnh không rõ, hỏi thêm thay vì đoán.\n5. Với ảnh: mô tả vật, phân loại, lý do, cách xử lý, nêu mức độ chắc chắn.\n6. Từ chối lịch sự các câu hỏi ngoài chủ đề.";
+
+// ============ STATE ============
+var state={chats:[],currentChatId:null,apiKey:'',model:'gemini-3.8-flash',theme:'light',pendingController:null,pendingImage:null};
+var STORAGE_KEY='smartwaste_chats_v2';
+var THEME_KEY='smartwaste_theme';
+var API_KEY='smartwaste_apikey';
+var MODEL_KEY='smartwaste_model';
+
+function saveChats(){
+try{
+var toSave=state.chats.slice(0,50).map(function(c){return{id:c.id,title:c.title,createdAt:c.createdAt,messages:c.messages.slice(-80)};});
+localStorage.setItem(STORAGE_KEY,JSON.stringify(toSave));
+}catch(e){console.warn('[SmartWaste] Storage full',e);}
+}
+function loadAll(){
+try{
+var raw=localStorage.getItem(STORAGE_KEY);
+if(raw)state.chats=JSON.parse(raw)||[];
+state.theme=localStorage.getItem(THEME_KEY)||'light';
+var storedKey=localStorage.getItem(API_KEY)||'';
+if(storedKey){state.apiKey=storedKey;}
+else if(HARDCODED_API_KEY && HARDCODED_API_KEY!==AQ.Ab8RN6IYnf6rtPxHjpXUeeM5cefZZ592xdAFKUHUJ0JdkvpDVg){
+state.apiKey=HARDCODED_API_KEY;
+}
+state.model=localStorage.getItem(MODEL_KEY)||'gemini-3.8-flash';
+}catch(e){state.chats=[];}
+}
+function saveSettings(){
+try{localStorage.setItem(API_KEY,state.apiKey);localStorage.setItem(MODEL_KEY,state.model);}catch(e){}
+}
+
+var $=function(id){return document.getElementById(id);};
+var sidebar=$('sidebar'),chatList=$('chatList'),messagesEl=$('messages'),chatArea=$('chatArea'),welcomeEl=$('welcome');
+var userInput=$('userInput'),sendBtn=$('sendBtn'),attachBtn=$('attachBtn'),imageInput=$('imageInput');
+var imgPreview=$('imgPreview'),previewImg=$('previewImg'),removeImg=$('removeImg');
+
+function applyTheme(){document.documentElement.setAttribute('data-theme',state.theme);$('themeToggle').textContent=state.theme==='light'?'🌙':'☀️';}
+function toggleTheme(){state.theme=state.theme==='light'?'dark':'light';localStorage.setItem(THEME_KEY,state.theme);applyTheme();}
+
+function esc(s){return String(s||'').replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+function renderChatList(){
+var q=($('searchChats').value||'').toLowerCase();
+var html='';
+for(var i=0;i<state.chats.length;i++){
+var c=state.chats[i];
+if(q&&c.title.toLowerCase().indexOf(q)===-1)continue;
+var active=c.id===state.currentChatId?' active':'';
+html+='<div class="chat-item'+active+'" data-id="'+c.id+'"><span class="chat-item-title">'+esc(c.title)+'</span><button class="chat-item-del" data-del="'+c.id+'">✕</button></div>';
+}
+if(!html)html='<div style="padding:16px;color:var(--text3);font-size:.85rem;text-align:center;">Chưa có cuộc trò chuyện nào</div>';
+chatList.innerHTML=html;
+}
+chatList.addEventListener('click',function(e){
+var del=e.target.closest('[data-del]');
+if(del){e.stopPropagation();deleteChat(del.getAttribute('data-del'));return;}
+var item=e.target.closest('[data-id]');
+if(item)openChat(item.getAttribute('data-id'));
+});
+
+function newChat(){
+var id='c_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+var chat={id:id,title:'Cuộc trò chuyện mới',createdAt:Date.now(),messages:[]};
+state.chats.unshift(chat);
+state.currentChatId=id;
+saveChats();renderChatList();renderMessages();
+if(window.innerWidth<768)sidebar.classList.remove('open');
+}
+function deleteChat(id){
+if(!confirm('Xóa cuộc trò chuyện này?'))return;
+state.chats=state.chats.filter(function(c){return c.id!==id;});
+if(state.currentChatId===id)state.currentChatId=state.chats[0]?state.chats[0].id:null;
+saveChats();renderChatList();renderMessages();
+}
+function openChat(id){state.currentChatId=id;renderChatList();renderMessages();if(window.innerWidth<768)sidebar.classList.remove('open');}
+function getCurrentChat(){for(var i=0;i<state.chats.length;i++)if(state.chats[i].id===state.currentChatId)return state.chats[i];return null;}
+
+function renderMessages(){
+var chat=getCurrentChat();
+if(!chat||!chat.messages.length){welcomeEl.style.display='block';messagesEl.innerHTML='';return;}
+welcomeEl.style.display='none';
+var html='';
+for(var i=0;i<chat.messages.length;i++){
+html+=renderMessage(chat.messages[i],i);
+}
+messagesEl.innerHTML=html;
+chatArea.scrollTop=chatArea.scrollHeight;
+}
+function renderMessage(m,idx){
+if(m.typing){
+return '<div class="msg ai"><div class="msg-avatar">♻️</div><div class="msg-content"><div class="msg-bubble typing"><span></span><span></span><span></span></div></div></div>';
+}
+var role=m.role==='user'?'user':'ai';
+var avatar=m.role==='user'?'👤':'♻️';
+var html='<div class="msg '+role+'" data-idx="'+idx+'">';
+html+='<div class="msg-avatar">'+avatar+'</div><div class="msg-content">';
+if(m.image)html+='<img class="msg-img" src="'+m.image+'" alt="ảnh">';
+if(m.content)html+='<div class="msg-bubble">'+esc(m.content)+'</div>';
+if(m.role==='ai'&&m.content){
+html+='<div class="msg-actions"><button data-copy="'+idx+'">📋 Sao chép</button>';
+if(m.error)html+='<button data-retry="'+idx+'">🔄 Gửi lại</button>';
+html+='</div>';
+}
+html+='</div></div>';
+return html;
+}
+messagesEl.addEventListener('click',function(e){
+var copy=e.target.closest('[data-copy]');
+if(copy){
+var chat=getCurrentChat();
+var idx=parseInt(copy.getAttribute('data-copy'));
+var m=chat.messages[idx];
+if(m&&m.content){
+if(navigator.clipboard)navigator.clipboard.writeText(m.content);
+var old=copy.textContent;
+copy.textContent='✅ Đã chép';
+setTimeout(function(){copy.textContent=old;},1500);
+}
+return;
+}
+var retry=e.target.closest('[data-retry]');
+if(retry){retryLastMessage();return;}
+});
+
+function appendMessage(msg){
+var chat=getCurrentChat();
+if(!chat)return;
+chat.messages.push(msg);
+if(chat.messages.length===1&&msg.role==='user'){
+chat.title=(msg.content||'Ảnh').slice(0,40);
+if(chat.title.length>=40)chat.title+='...';
+}
+saveChats();renderChatList();renderMessages();
+}
+
+// ============ SEND ============
+function sendMessage(){
+console.log('[SmartWaste] sendMessage() called');
+var text=userInput.value.trim();
+var image=state.pendingImage;
+console.log('[SmartWaste] text=',text,'image=',!!image);
+
+if(!text&&!image){
+console.log('[SmartWaste] Empty input, ignoring');
+// Visual feedback: pulse input border
+userInput.focus();
+userInput.style.borderColor='var(--danger)';
+setTimeout(function(){userInput.style.borderColor='';},600);
+return;
+}
+
+var chat=getCurrentChat();
+if(!chat){
+console.log('[SmartWaste] No chat, creating new');
+newChat();
+chat=getCurrentChat();
+}
+
+// Add user message
+appendMessage({role:'user',content:text,image:image,ts:Date.now()});
+userInput.value='';
+userInput.style.height='auto';
+clearImagePreview();
+
+// Check API key AFTER adding message (so user sees their question)
+if(!state.apiKey){
+console.log('[SmartWaste] No API key, showing inline error');
+chat.messages.push({
+role:'ai',
+content:'⚠️ Chưa có Gemini API Key.\n\nVui lòng:\n1) Mở ⚙️ Cài đặt AI (góc dưới sidebar trái)\n2) Dán API key lấy từ https://aistudio.google.com/apikey\n3) Bấm "Lưu cài đặt"\n\nSau đó bấm nút 🔄 Gửi lại trên tin nhắn này để tiếp tục.',
+error:true,
+ts:Date.now()
+});
+saveChats();
+renderMessages();
+return;
+}
+
+callAI();
+}
+
+function retryLastMessage(){
+var chat=getCurrentChat();
+if(!chat||!chat.messages.length)return;
+var last=chat.messages[chat.messages.length-1];
+if(last.role==='ai'&&last.error){chat.messages.pop();saveChats();renderMessages();}
+else{return;}
+if(!state.apiKey){sendMessage();return;}
+callAI();
+}
+
+async function callAI(){
+var chat=getCurrentChat();
+if(!chat)return;
+var ctrl=new AbortController();
+state.pendingController=ctrl;
+setSendBtnStop(true);
+
+chat.messages.push({role:'ai',typing:true});
+renderMessages();
+
+try{
+var msgsForAPI=chat.messages.filter(function(m){return !m.typing;});
+var lastUserIdx=-1;
+for(var i=msgsForAPI.length-1;i>=0;i--){if(msgsForAPI[i].role==='user'){lastUserIdx=i;break;}}
+var contents=[];
+for(var i=0;i<msgsForAPI.length;i++){
+var m=msgsForAPI[i];
+var role=m.role==='user'?'user':'model';
+var parts=[];
+if(i===lastUserIdx&&m.image){
+var im=parseDataUrl(m.image);
+if(im)parts.push({inline_data:{mime_type:im.mime,data:im.data}});
+}
+if(m.content)parts.push({text:m.content});
+if(parts.length)contents.push({role:role,parts:parts});
+}
+if(!contents.length)throw new Error('Không có nội dung để gửi');
+
+var modelToUse=state.model||'gemini-3.8-flash';
+var url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(modelToUse)+':generateContent?key='+encodeURIComponent(state.apiKey);
+
+var body={
+system_instruction:{parts:[{text:SYSTEM_PROMPT}]},
+contents:contents,
+generationConfig:{temperature:0.4,maxOutputTokens:1024}
+};
+
+var resp=await fetch(url,{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify(body),
+signal:ctrl.signal
+});
+
+if(!resp.ok){
+var errTxt=await resp.text();
+var errMsg='HTTP '+resp.status;
+try{var j=JSON.parse(errTxt);if(j.error&&j.error.message)errMsg+=' - '+j.error.message;}catch(e){errMsg+=' - '+errTxt.slice(0,150);}
+throw new Error(errMsg);
+}
+
+var data=await resp.json();
+var txt='';
+try{
+if(data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts){
+txt=data.candidates[0].content.parts.map(function(p){return p.text||'';}).join('');
+}
+}catch(e){}
+if(!txt)throw new Error('AI không trả về nội dung.');
+
+chat.messages=chat.messages.filter(function(m){return !m.typing;});
+chat.messages.push({role:'ai',content:txt,ts:Date.now()});
+saveChats();renderMessages();
+}catch(err){
+console.error('[SmartWaste] AI error:',err);
+chat.messages=chat.messages.filter(function(m){return !m.typing;});
+var msg;
+if(err.name==='AbortError'){
+msg='⏹ Đã dừng phản hồi.';
+}else if(err.message==='Failed to fetch'){
+msg='❌ Lỗi kết nối mạng (Failed to fetch).\n\nNguyên nhân thường gặp:\n1) Bạn đang mở file qua file:// → hãy chạy qua http://localhost (VD: python -m http.server 8000).\n2) Mất kết nối Internet.\n3) API key bị chặn hoặc sai domain.';
+}else if(err.message.indexOf('API_KEY')!==-1||err.message.indexOf('API key')!==-1){
+msg='❌ API Key không hợp lệ. Kiểm tra lại trong ⚙️ Cài đặt AI.';
+}else if(err.message.indexOf('not found')!==-1||err.message.indexOf('404')!==-1){
+msg='❌ Model "'+modelToUse+'" không tồn tại hoặc chưa mở cho tài khoản của bạn.\n\nThử mở ⚙️ Cài đặt AI và đổi sang "gemini-2.0-flash" (model ổn định nhất hiện tại).';
+}else{
+msg='❌ Lỗi: '+err.message;
+}
+chat.messages.push({role:'ai',content:msg,error:true,ts:Date.now()});
+saveChats();renderMessages();
+}finally{
+state.pendingController=null;
+setSendBtnStop(false);
+}
+}
+
+function setSendBtnStop(isStop){
+if(isStop){sendBtn.textContent='⏹';sendBtn.classList.add('stop');sendBtn.title='Dừng phản hồi';}
+else{sendBtn.textContent='➤';sendBtn.classList.remove('stop');sendBtn.title='Gửi';}
+}
+
+// Gửi khi bấm nút
+sendBtn.addEventListener('click',function(e){
+console.log('[SmartWaste] Send button clicked');
+e.preventDefault();
+if(state.pendingController){state.pendingController.abort();return;}
+sendMessage();
+});
+
+// ============ IME-SAFE ENTER HANDLING ============
+// Xử lý bộ gõ tiếng Việt: chỉ gửi khi KHÔNG đang trong quá trình composition
+var isComposing=false;
+userInput.addEventListener('compositionstart',function(){isComposing=true;console.log('[SmartWaste] compositionstart');});
+userInput.addEventListener('compositionend',function(){isComposing=false;console.log('[SmartWaste] compositionend');});
+userInput.addEventListener('keydown',function(e){
+console.log('[SmartWaste] keydown:',e.key,'isComposing=',isComposing,'e.isComposing=',e.isComposing);
+if(e.key==='Enter'&&!e.shiftKey){
+if(isComposing||e.isComposing||e.keyCode===229){
+console.log('[SmartWaste] IME composing, ignoring Enter');
+return;
+}
+e.preventDefault();
+sendMessage();
+}
+});
+userInput.addEventListener('input',function(){
+this.style.height='auto';
+this.style.height=Math.min(this.scrollHeight,150)+'px';
+});
+
+// ============ IMAGE ============
+attachBtn.addEventListener('click',function(){imageInput.click();});
+imageInput.addEventListener('change',function(e){
+var f=e.target.files&&e.target.files[0];
+if(!f)return;
+if(!f.type.startsWith('image/')){alert('Vui lòng chọn file ảnh.');return;}
+if(f.size>5*1024*1024){alert('Ảnh quá lớn (tối đa 5MB).');return;}
+var r=new FileReader();
+r.onload=function(ev){
+var img=new Image();
+img.onload=function(){
+var maxW=800,maxH=800;
+var w=img.width,h=img.height;
+if(w>maxW||h>maxH){var ratio=Math.min(maxW/w,maxH/h);w=Math.round(w*ratio);h=Math.round(h*ratio);}
+var c=document.createElement('canvas');c.width=w;c.height=h;
+c.getContext('2d').drawImage(img,0,0,w,h);
+var dataUrl=c.toDataURL('image/jpeg',0.85);
+state.pendingImage=dataUrl;
+previewImg.src=dataUrl;
+imgPreview.classList.add('active');
+};
+img.src=ev.target.result;
+};
+r.readAsDataURL(f);
+imageInput.value='';
+});
+removeImg.addEventListener('click',clearImagePreview);
+function clearImagePreview(){
+state.pendingImage=null;
+imgPreview.classList.remove('active');
+previewImg.src='';
+}
+function parseDataUrl(url){
+try{var parts=url.split(',');var mime=parts[0].split(';')[0].split(':')[1];return{mime:mime,data:parts[1]};}catch(e){return null;}
+}
+
+// ============ SUGGESTIONS — TỰ ĐỘNG GỬI ============
+document.querySelectorAll('.suggestion').forEach(function(b){
+b.addEventListener('click',function(){
+console.log('[SmartWaste] Suggestion clicked:',this.getAttribute('data-q'));
+userInput.value=this.getAttribute('data-q');
+sendMessage();
+});
+});
+
+// ============ NAV ============
+$('newChatBtn').addEventListener('click',newChat);
+$('searchChats').addEventListener('input',renderChatList);
+$('themeToggle').addEventListener('click',toggleTheme);
+$('menuToggle').addEventListener('click',function(){sidebar.classList.toggle('open');});
+$('closeSidebar').addEventListener('click',function(){sidebar.classList.remove('open');});
+
+// ============ SETTINGS ============
+function openSettings(){
+$('apiKeyInput').value=state.apiKey;
+$('modelInput').value=state.model;
+var isHardcoded=state.apiKey===HARDCODED_API_KEY&&HARDCODED_API_KEY!=="YOUR_GEMINI_API_KEY_HERE";
+$('apiStatus').textContent=state.apiKey?('✅ Đã có API key ('+state.model+')'+(isHardcoded?' — lấy từ code':'')):'⚠️ Chưa có API Key. Nhập bên dưới hoặc sửa HARDCODED_API_KEY trong code.';
+$('settingsModal').classList.add('active');
+}
+$('openSettingsBtn').addEventListener('click',openSettings);
+$('closeSettings').addEventListener('click',function(){$('settingsModal').classList.remove('active');});
+$('saveSettings').addEventListener('click',function(){
+state.apiKey=$('apiKeyInput').value.trim();
+state.model=$('modelInput').value.trim()||'gemini-3.8-flash';
+saveSettings();
+$('apiStatus').textContent=state.apiKey?('✅ Đã lưu ('+state.model+')'):'Chưa nhập key.';
+setTimeout(function(){$('settingsModal').classList.remove('active');},600);
+});
+
+// ============ TOOLS ============
+function openTools(tool){
+$('toolsModal').classList.add('active');
+switchTool(tool||'home');
+}
+$('openToolsBtn').addEventListener('click',function(){openTools();});
+$('closeTools').addEventListener('click',function(){$('toolsModal').classList.remove('active');});
+document.querySelectorAll('#toolsTabs button').forEach(function(b){
+b.addEventListener('click',function(){switchTool(this.getAttribute('data-tool'));});
+});
+
+function switchTool(name){
+document.querySelectorAll('#toolsTabs button').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-tool')===name);});
+var body=$('modalBody');
+if(name==='home'){
+body.innerHTML='<div class="card"><h3>♻️ SmartWaste</h3><p>Chào mừng bạn! Bạn có thể hỏi chatbot hoặc dùng các tab bên trên để tra cứu nhanh.</p></div><div class="card"><h3>💡 Phân loại</h3><p><span class="tag">♻️ Tái chế</span><span class="tag" style="background:#b86b1f;">🍂 Hữu cơ</span><span class="tag" style="background:#b33e3e;">⚠️ Nguy hại</span><span class="tag" style="background:#4a6b8a;">🗑️ Còn lại</span></p></div>';
+}
+else if(name==='search'){
+body.innerHTML='<div class="search-row"><input id="toolSearchInput" placeholder="Nhập vật cần tìm..."><button class="btn-primary" id="toolSearchBtn">Tìm</button></div><div id="toolSearchResult"></div><p style="color:var(--text3);font-size:.85rem;margin-top:10px;">Gợi ý: chai nhựa, pin, ly còn nước, giấy bẩn, hộp thức ăn.</p>';
+$('toolSearchBtn').addEventListener('click',toolSearch);
+$('toolSearchInput').addEventListener('keypress',function(e){if(e.key==='Enter')toolSearch();});
+}
+else if(name==='guide'){
+var h='';
+for(var g in guideDB){
+var x=guideDB[g];
+h+='<div class="card"><h3>'+x.i+' '+g+'</h3><p><strong>Hướng dẫn:</strong> '+x.a+'</p><p><strong>Ví dụ:</strong> '+x.e+'</p></div>';
+}
+body.innerHTML=h;
+}
+else if(name==='quiz'){renderToolQuiz();}
+else if(name==='result'){renderToolResult();}
+else if(name==='camera'){renderToolCamera();}
+}
+
+function toolSearch(){
+var q=($('toolSearchInput').value||'').trim().toLowerCase();
+var res=$('toolSearchResult');
+if(!q){res.innerHTML='<p>Nhập từ khóa.</p>';return;}
+var found=null;
+for(var i=0;i<wasteDB.length;i++){
+if(wasteDB[i].n.toLowerCase().indexOf(q)!==-1||q.indexOf(wasteDB[i].n.toLowerCase())!==-1){found=wasteDB[i];break;}
+}
+if(found){
+res.innerHTML='<div class="card"><h3>'+esc(found.n)+'</h3><span class="tag">Nhóm: '+esc(found.g)+'</span><p><strong>Lý do:</strong> '+esc(found.r)+'</p><p><strong>Xử lý:</strong> '+esc(found.p)+'</p></div>';
+}else{
+res.innerHTML='<p>Không tìm thấy. Thử: chai nhựa, pin, ly còn nước...</p>';
+}
+}
+
+var toolQuizState={answers:new Array(quizDB.length).fill(null),idx:0};
+function renderToolQuiz(){
+var body=$('modalBody');
+var q=quizDB[toolQuizState.idx];
+var html='<p style="color:var(--text3);font-size:.85rem;margin-bottom:8px;">Câu '+(toolQuizState.idx+1)+'/'+quizDB.length+'</p>';
+html+='<p style="font-weight:600;margin-bottom:12px;">'+esc(q.q)+'</p>';
+for(var i=0;i<q.o.length;i++){
+var sel=toolQuizState.answers[toolQuizState.idx]===i?' selected':'';
+html+='<div class="q-opt'+sel+'" data-qi="'+i+'">'+esc(q.o[i])+'</div>';
+}
+html+='<div style="display:flex;gap:8px;margin-top:14px;"><button class="btn-secondary" id="toolPrev"'+(toolQuizState.idx===0?' disabled':'')+'>← Trước</button><button class="btn-primary" id="toolNext" style="flex:1;">'+(toolQuizState.idx===quizDB.length-1?'Hoàn thành ✓':'Tiếp →')+'</button></div>';
+body.innerHTML=html;
+body.querySelectorAll('.q-opt').forEach(function(el){
+el.addEventListener('click',function(){
+toolQuizState.answers[toolQuizState.idx]=parseInt(this.getAttribute('data-qi'));
+renderToolQuiz();
+});
+});
+$('toolPrev').addEventListener('click',function(){if(toolQuizState.idx>0){toolQuizState.idx--;renderToolQuiz();}});
+$('toolNext').addEventListener('click',function(){
+if(toolQuizState.answers[toolQuizState.idx]===null){alert('Chọn đáp án trước.');return;}
+if(toolQuizState.idx<quizDB.length-1){toolQuizState.idx++;renderToolQuiz();}
+else switchTool('result');
+});
+}
+
+function renderToolResult(){
+var body=$('modalBody');
+var correct=0,review=[];
+for(var i=0;i<quizDB.length;i++){
+var a=toolQuizState.answers[i];
+if(a!==null&&a===quizDB[i].c)correct++;
+else review.push({q:quizDB[i].q,ans:quizDB[i].o[quizDB[i].c],your:a===null?'(chưa trả lời)':quizDB[i].o[a]});
+}
+var msg=correct===quizDB.length?'🌟 Xuất sắc!':correct>=3?'👍 Khá tốt!':'💪 Cố lên!';
+var html='<p style="font-size:2rem;font-weight:800;color:var(--primary);text-align:center;">'+correct+'/'+quizDB.length+'</p>';
+html+='<p style="text-align:center;margin-bottom:14px;">'+msg+'</p>';
+html+='<h3 style="font-size:1rem;margin-bottom:8px;">📌 Câu cần ôn lại</h3>';
+if(!review.length)html+='<p style="color:var(--primary);">🎉 Không có câu nào cần ôn lại!</p>';
+else review.forEach(function(r){
+html+='<div class="review-item"><strong>❓ '+esc(r.q)+'</strong><br><span style="color:var(--primary);">✅ Đúng: '+esc(r.ans)+'</span><br><span style="color:var(--danger);">✏️ Bạn chọn: '+esc(r.your)+'</span></div>';
+});
+html+='<button class="btn-primary" id="retryToolQuiz" style="margin-top:12px;width:100%;">Làm lại</button>';
+body.innerHTML=html;
+$('retryToolQuiz').addEventListener('click',function(){
+toolQuizState={answers:new Array(quizDB.length).fill(null),idx:0};
+switchTool('quiz');
+});
+}
+
+function renderToolCamera(){
+var body=$('modalBody');
+body.innerHTML=
+'<div class="cam-wrap"><div class="cam-placeholder" id="toolCamPlaceholder"><div style="font-size:2.5rem;">📷</div><br>Camera chưa bật.</div><video id="toolVideo" autoplay playsinline class="hidden"></video><img id="toolSnapshot" class="hidden" alt=""></div>'+
+'<div class="cam-actions">'+
+'<button class="btn-primary" id="toolStartCam">Bật camera</button>'+
+'<button class="btn-secondary hidden" id="toolStopCam">Tắt camera</button>'+
+'<button class="btn-primary hidden" id="toolCapture">Chụp ảnh</button>'+
+'<button class="btn-secondary hidden" id="toolRetake">Chụp lại</button>'+
+'</div>'+
+'<p style="font-size:.85rem;color:var(--text2);margin-bottom:10px;">Ảnh chụp sẽ được đưa vào chat để AI phân loại.</p>';
+var video=$('toolVideo'),placeholder=$('toolCamPlaceholder'),snapshot=$('toolSnapshot');
+var stream=null;
+function stopCam(){
+if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
+if(video.srcObject){video.srcObject=null;}
+video.classList.add('hidden');snapshot.classList.add('hidden');
+placeholder.style.display='block';
+$('toolStartCam').classList.remove('hidden');
+$('toolStopCam').classList.add('hidden');
+$('toolCapture').classList.add('hidden');
+$('toolRetake').classList.add('hidden');
+}
+$('toolStartCam').addEventListener('click',async function(){
+try{
+if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){alert('Trình duyệt không hỗ trợ camera.');return;}
+stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+video.srcObject=stream;video.classList.remove('hidden');placeholder.style.display='none';
+$('toolStartCam').classList.add('hidden');
+$('toolStopCam').classList.remove('hidden');
+$('toolCapture').classList.remove('hidden');
+$('toolRetake').classList.add('hidden');
+}catch(err){
+var msg='Không mở được camera. ';
+if(err.name==='NotAllowedError')msg+='Bạn đã từ chối quyền. Bấm ổ khóa trên thanh địa chỉ → cho phép Camera.';
+else if(err.name==='NotFoundError')msg+='Không tìm thấy camera.';
+else msg+=err.message||'Lỗi không xác định.';
+alert(msg);
+}
+});
+$('toolStopCam').addEventListener('click',stopCam);
+$('toolCapture').addEventListener('click',function(){
+if(!stream){alert('Bật camera trước.');return;}
+var c=document.createElement('canvas');
+var w=video.videoWidth||640,h=video.videoHeight||480;
+c.width=w;c.height=h;c.getContext('2d').drawImage(video,0,0,w,h);
+var dataUrl=c.toDataURL('image/jpeg',0.85);
+snapshot.src=dataUrl;snapshot.classList.remove('hidden');video.classList.add('hidden');
+$('toolCapture').classList.add('hidden');$('toolRetake').classList.remove('hidden');$('toolStopCam').classList.add('hidden');
+state.pendingImage=dataUrl;
+previewImg.src=dataUrl;imgPreview.classList.add('active');
+stopCam();
+$('toolsModal').classList.remove('active');
+userInput.value='Phân loại rác từ ảnh này giúp mình.';
+userInput.focus();
+});
+$('toolRetake').addEventListener('click',function(){
+snapshot.classList.add('hidden');video.classList.remove('hidden');
+$('toolCapture').classList.remove('hidden');$('toolRetake').classList.add('hidden');$('toolStopCam').classList.remove('hidden');
+});
+var obs=new MutationObserver(function(){
+if(!$('toolsModal').classList.contains('active'))stopCam();
+});
+obs.observe($('toolsModal'),{attributes:true,attributeFilter:['class']});
+}
+
+// ============ INIT ============
+loadAll();
+applyTheme();
+if(!state.chats.length){newChat();}
+else{state.currentChatId=state.chats[0].id;}
+renderChatList();
+renderMessages();
+
+if(!state.apiKey){
+setTimeout(function(){
+var w=document.createElement('div');
+w.className='api-warn';
+w.textContent='⚠️ Chưa có API Key. Vào ⚙️ Cài đặt AI để nhập, hoặc sửa hằng số HARDCODED_API_KEY ở đầu file.';
+welcomeEl.parentNode.insertBefore(w,welcomeEl.nextSibling);
+},500);
+}
+
+console.log('[SmartWaste] Boot: init complete. API key=',state.apiKey?'✅ set':'❌ missing');
+window.SmartWaste={state:state,newChat:newChat,switchTool:switchTool};
+</script>
+</body>
+</html>
